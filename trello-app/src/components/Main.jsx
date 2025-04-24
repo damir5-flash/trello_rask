@@ -1,5 +1,5 @@
-import React, { useContext } from 'react';
-import { MoreHorizontal, UserPlus, Edit2 } from 'react-feather';
+import React, { useContext, useState } from 'react';
+import { MoreHorizontal, UserPlus, Edit2 , Check } from 'react-feather';
 import CardAdd from './CardAdd';
 import { BoardContext } from '../context/BoardContext';
 import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
@@ -9,6 +9,19 @@ import Utils from '../utils/Utils';
 const Main = () => {
   const { allboard, setAllBoard } = useContext(BoardContext);
   const bdata = allboard.boards[allboard.active];
+
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState('');
+
+  const handleSaveEdit = (listIndex, itemIndex) => {
+    const newList = [...bdata.list];
+    newList[listIndex].items[itemIndex].title = editText;
+
+    const board_ = { ...allboard };
+    board_.boards[board_.active].list = newList;
+    setAllBoard(board_);
+    setEditingId(null);
+  };
 
   function onDragEnd(res) {
     if (!res.destination) return;
@@ -82,26 +95,57 @@ const Main = () => {
                             {...provided.droppableProps}
                           >
                             {x.items &&
-                              x.items.map((item, index) => (
-                                <Draggable key={item.id} draggableId={item.id} index={index}>
-                                  {(provided, snapshot) => (
-                                    <div
-                                      ref={provided.innerRef}
-                                      {...provided.draggableProps}
-                                      {...provided.dragHandleProps}
-                                    >
-                                      <div className='item flex justify-between items-center bg-zinc-700 p-1 cursor-pointer rounded-md border-2 border-zinc-900 hover:border-gray-500'>
-                                        <span>{item.title}</span>
-                                        <span className='flex justify-start items-start'>
-                                          <button className='hover:bg-gray-600 p-1 rounded-sm'>
-                                            <Edit2 size={16} />
-                                          </button>
-                                        </span>
+                              x.items.map((item, index) => {
+                                const isEditing = editingId === item.id;
+                                return (
+                                  <Draggable key={item.id} draggableId={item.id} index={index}>
+                                    {(provided, snapshot) => (
+                                      <div
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        {...provided.dragHandleProps}
+                                      >
+                                        <div className='item flex justify-between items-center bg-zinc-700 p-1 cursor-pointer rounded-md border-2 border-zinc-900 hover:border-gray-500'>
+                                          {isEditing ? (
+                                            <input
+                                              className='bg-zinc-800 text-white px-2 py-1 rounded w-full mr-2'
+                                              value={editText}
+                                              onChange={(e) => setEditText(e.target.value)}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveEdit(ind, index);
+                                                if (e.key === 'Escape') setEditingId(null);
+                                              }}
+                                              autoFocus
+                                            />
+                                          ) : (
+                                            <span>{item.title}</span>
+                                          )}
+                                          <span className='flex justify-start items-start'>
+                                            {isEditing ? (
+                                              <button
+                                                className='hover:bg-green-700 p-1 rounded-sm ml-2'
+                                                onClick={() => handleSaveEdit(ind, index)}
+                                              >
+                                                <Check size={16}></Check>
+                                              </button>
+                                            ) : (
+                                              <button
+                                                className='hover:bg-gray-600 p-1 rounded-sm ml-2'
+                                                onClick={() => {
+                                                  setEditingId(item.id);
+                                                  setEditText(item.title);
+                                                }}
+                                              >
+                                                <Edit2 size={16} />
+                                              </button>
+                                            )}
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
-                                </Draggable>
-                              ))}
+                                    )}
+                                  </Draggable>
+                                );
+                              })}
                             {provided.placeholder}
                           </div>
                         )}
